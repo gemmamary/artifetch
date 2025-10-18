@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "artifetch"
+version = "0.0.1"
+description = "Universal artifact fetcher for Artifactory, GitLab, and Git."
+authors = [{ name = "Gemma Mcgee" }]
+dependencies = ["requests", "python-gitlab", "python-dotenv"]
+
+[project.scripts]
+artifetch = "artifetch.cli:main"
