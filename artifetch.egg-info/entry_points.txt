@@ -1,2 +1,0 @@
-[console_scripts]
-artifetch = artifetch.cli:main

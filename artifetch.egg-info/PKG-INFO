@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: artifetch
-Version: 0.0.1
-Summary: Universal artifact fetcher for Artifactory, GitLab, and Git.
-Author: Gemma Mcgee
-Description-Content-Type: text/markdown
-Requires-Dist: requests
-Requires-Dist: python-gitlab
-Requires-Dist: python-dotenv
