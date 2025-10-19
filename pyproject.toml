@@ -27,7 +27,11 @@ dev = [
     "build",
     "twine",
     "setuptools",
-    "setuptools-scm",
+    "setuptools_scm",
     "wheel",
     "deptry",
+    "pytest",
+    "ruff",
+    "black",
+    "mypy",
 ]
