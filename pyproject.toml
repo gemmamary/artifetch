@@ -7,7 +7,11 @@ name = "artifetch"
 description = "Universal artifact fetcher for Artifactory, GitLab, and Git."
 readme = { file = "README.md", content-type = "text/markdown" }
 authors = [{ name = "Gemma Mcgee" }]
-dependencies = ["requests", "python-gitlab", "python-dotenv"]
+dependencies = [
+    "requests", 
+    "python-gitlab", 
+    "python-dotenv"
+    ]
 dynamic = ["version"]
 
 [project.scripts]
@@ -16,3 +20,14 @@ artifetch = "artifetch.cli:main"
 [tool.setuptools_scm]
 version_scheme = "guess-next-dev"
 local_scheme = "no-local-version"
+
+# ---------- DEV DEPENDENCIES ----------
+[project.optional-dependencies]
+dev = [
+    "build",
+    "twine",
+    "setuptools",
+    "setuptools-scm",
+    "wheel",
+    "deptry",
+]
