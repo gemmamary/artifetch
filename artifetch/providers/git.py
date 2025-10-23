@@ -12,8 +12,7 @@ except Exception:
     def load_dotenv() -> None:
         return
 
-
-from artifetch.utils.filesystem import ensure_dir
+from artifetch.utils.filesystem import ensure_dir, rmtree_win_safe
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +43,7 @@ class GitFetcher:
 
     def fetch(self, source: str, dest: Path, branch: Optional[str] = None,
               subdir: Optional[str] = None) -> Path:
+        
         dest = Path(dest).resolve()
         ensure_dir(dest)
         logger.debug("Validating source format...")
@@ -111,7 +111,12 @@ class GitFetcher:
                 if dst.exists():
                     raise RuntimeError(f"Destination '{dst}' already exists.")
                 shutil.move(str(src), str(dst))
-                shutil.rmtree(target, ignore_errors=True)
+                
+                try:
+                    rmtree_win_safe(target)
+                except Exception as e:
+                    logger.warning("Cleanup of temporary clone '%s' failed: %s", target, e)
+
                 return dst
         
         except FileNotFoundError as e:
