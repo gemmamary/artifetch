@@ -1,5 +1,3 @@
-# artifetch/cli.py
-
 import argparse
 import sys
 from artifetch.core import fetch, FetchError
@@ -33,7 +31,7 @@ def main():
     try:
         fetch(source=args.source, dest=args.dest, provider=args.provider)
     except FetchError as e:
-        print(f"❌ Error: {e}", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
 

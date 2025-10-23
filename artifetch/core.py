@@ -51,10 +51,10 @@ def fetch(source: str, dest: Optional[str] = None, provider: Optional[str] = Non
 
     try:
         result = fetcher.fetch(source, dest_path)
-        print(f"✅ Successfully fetched via {provider}: {result}")
+        print(f"Successfully fetched via {provider}: {result}")
         return result
     except Exception as e:
-        print(f"❌ Fetch failed: {e}", file=sys.stderr)
+        print(f"Fetch failed: {e}", file=sys.stderr)
         raise FetchError(str(e))
 
 

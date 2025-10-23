@@ -48,7 +48,7 @@ class ArtifactoryFetcher:
         filename = Path(url).name
         file_path = dest / filename
 
-        print(f"📦 Downloading from Artifactory: {url}")
+        print(f"Downloading from Artifactory: {url}")
 
         try:
             response = requests.get(url, auth=(self.user, self.token), stream=True, timeout=60)
@@ -62,5 +62,5 @@ class ArtifactoryFetcher:
                 if chunk:
                     f.write(chunk)
 
-        print(f"✅ Downloaded to {file_path}")
+        print(f"Downloaded to {file_path}")
         return file_path
