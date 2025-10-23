@@ -158,4 +158,8 @@ ARTIFETCH_GIT_HOST=git.mycorp.local
 - GitLab artifacts
 - Artifactory support
 
+--- 
 
+## License
+
+MIT
