@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "artifetch"
 description = "Universal artifact fetcher for Artifactory, GitLab, and Git."
-readme = { file = "README.md", content-type = "text/markdown" }
+readme = "README.md"
 authors = [{ name = "Gemma Mcgee" }]
 dependencies = [
     "requests", 
@@ -13,6 +13,10 @@ dependencies = [
     "python-dotenv"
     ]
 dynamic = ["version"]
+
+[project.urls]
+Homepage="https://github.com/gemmamary/artifetch/"
+Documentation="https://github.com/gemmamary/artifetch/#README.md"
 
 [project.scripts]
 artifetch = "artifetch.cli:main"
