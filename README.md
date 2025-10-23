@@ -34,9 +34,28 @@ In python code
 from artifetch.core import fetch
 
 fetch("libs-release/com/example/file.zip", dest="downloads", provider="artifactory")
+
+fetcher = GitFetcher()
+
+# 1) Default branch, single subfolder
+mod_dir = fetcher.fetch(
+    "https://github.com/org/monorepo.git",
+    Path("/tmp/repos"),
+    subdir="modules/sensor_fusion"
+)
+print("Module checked out at:", mod_dir)
+
+# 2) Specific branch + subfolder (branch may include '@' safely)
+mod_dir = fetcher.fetch(
+    "git@github.com:org/monorepo.git",
+    Path("/tmp/repos"),
+    branch="release@2025.10",
+    subdir="modules/adas/camera"
+)
 ```
+
 Set env variables:
-```json
+```
 GITLAB_URL
 GITLAB_TOKEN or CI_JOB_TOKEN
 
