@@ -11,13 +11,25 @@ from artifetch.providers.git import GitFetcher
 # Helpers & fixtures
 # ----------------------------
 
-def _norm_subdir(s: str) -> Path:
-    """Normalize subdir like the implementation (forward slashes, collapse //, strip leading/trailing /)."""
-    s = re.sub(r"/+", "/", str(s).replace("\\", "/")).strip("/")
-    if not s:
-        # This mirrors the guard in your implementation when subdir is provided and normalizes to empty
-        raise ValueError("subdir must not be empty or the repository root ('/' or '\\').")
-    return Path(*s.split("/"))
+
+@pytest.fixture(autouse=True)
+def clean_git_env(monkeypatch, tmp_path):
+    """
+    Ensure tests are deterministic:
+    - Prevent python-dotenv from populating os.environ.
+    - Remove host/proto/user overrides from the environment.
+    - Work in a temp CWD so no project .env is discovered implicitly.
+    """
+    # Disable load_dotenv inside GitFetcher
+    import artifetch.providers.git as gitmod
+    monkeypatch.setattr(gitmod, "load_dotenv", lambda: None)
+
+    # Remove potentially set envs
+    for var in ("GIT_BINARY", "ARTIFETCH_GIT_HOST", "ARTIFETCH_GIT_PROTO", "ARTIFETCH_GIT_USER"):
+        monkeypatch.delenv(var, raising=False)
+
+    # Avoid picking up a .env in the repo root via working directory heuristics
+    monkeypatch.chdir(tmp_path)
 
 
 class GitRunDouble:
@@ -73,7 +85,7 @@ def clean_env(monkeypatch):
 # Core behavior
 # ----------------------------
 
-def test_fetch_no_subdir_default_branch(tmp_path, git_double):
+def test_fetch_default_branch(tmp_path, git_double):
     src = "https://gitlab.com/org/monorepo.git"
     dest = tmp_path / "repos"
     dest.mkdir()
@@ -90,12 +102,10 @@ def test_fetch_no_subdir_default_branch(tmp_path, git_double):
     assert clone_call[1] == "clone"
     assert "--depth" in clone_call and "1" in clone_call
     assert "--no-tags" in clone_call
-    assert "--filter=blob:none" not in clone_call
-    assert "--no-checkout" not in clone_call
     assert "-b" not in clone_call
 
 
-def test_fetch_with_branch_no_subdir(tmp_path, git_double):
+def test_fetch_with_branch(tmp_path, git_double):
     src = "https://gitlab.com/org/monorepo.git"
     dest = tmp_path / "repos"
     dest.mkdir()
@@ -108,110 +118,9 @@ def test_fetch_with_branch_no_subdir(tmp_path, git_double):
     assert "-b" in clone_call and "release/1.0" in clone_call
 
 
-def test_fetch_with_subdir_no_branch(tmp_path, git_double):
-    src = "https://gitlab.com/org/monorepo.git"
-    dest = tmp_path / "repos"
-    dest.mkdir()
-    f = GitFetcher()
-
-    subdir = "modules/adas/camera"
-    expected = dest / _norm_subdir(subdir)
-
-    result = f.fetch(src, dest, subdir=subdir)
-
-    # Returns dest/<subdir> and repo folder removed
-    assert result == expected
-    assert expected.exists()
-    assert not (dest / "monorepo").exists()
-
-    # Sparse clone flags present; no -b
-    clone_call = git_double.calls[0]
-    assert "--filter=blob:none" in clone_call
-    assert "--no-checkout" in clone_call
-    assert "-b" not in clone_call
-
-    # Subsequent sparse-checkout commands executed
-    all_joined = [" ".join(c) for c in git_double.calls]
-    assert any("sparse-checkout init --no-cone" in s for s in all_joined)
-    assert any("sparse-checkout set --no-cone " in s for s in all_joined)
-    assert any(" checkout" in s for s in all_joined)
-
-
-def test_fetch_with_branch_and_subdir(tmp_path, git_double):
-    src = "https://gitlab.com/org/monorepo.git"
-    dest = tmp_path / "repos"
-    dest.mkdir()
-    f = GitFetcher()
-
-    subdir = "modules/vision/perception"
-    expected = dest / _norm_subdir(subdir)
-
-    result = f.fetch(src, dest, branch="release/1.0", subdir=subdir)
-    assert result == expected
-    assert expected.exists()
-    assert not (dest / "monorepo").exists()
-
-    clone_call = git_double.calls[0]
-    assert "-b" in clone_call and "release/1.0" in clone_call
-    assert "--filter=blob:none" in clone_call and "--no-checkout" in clone_call
-
-
-@pytest.mark.parametrize(
-    "variant",
-    [
-        "/modules/adas/camera",
-        r"\\modules\\adas\\camera",
-        r"modules\\adas/camera",
-        "modules/adas//camera",
-        "////modules////adas////camera////",
-    ],
-)
-def test_fetch_normalizes_subdir_variants(tmp_path, git_double, variant):
-    src = "https://gitlab.com/org/monorepo.git"
-    dest = tmp_path / "repos"
-    dest.mkdir()
-    f = GitFetcher()
-
-    expected = dest / Path("modules/adas/camera")
-    result = f.fetch(src, dest, subdir=variant)
-
-    assert result == expected
-    assert expected.exists()
-    assert not (dest / "monorepo").exists()
-
-
 # ----------------------------
 # Errors & edge cases
 # ----------------------------
-
-@pytest.mark.parametrize("bad", ["/", "\\", "////", r"\\\\"])
-def test_rejects_root_like_subdir(tmp_path, git_double, bad):
-    """
-    Should reject subdir only when it's provided AND normalizes to empty,
-    e.g., '/', '\\', '////', '\\\\\\\\'. An empty string '' is treated as 'no subdir'
-    and therefore should NOT raise.
-    """
-    src = "https://gitlab.com/org/monorepo.git"
-    dest = tmp_path / "repos"
-    dest.mkdir()
-    f = GitFetcher()
-    with pytest.raises(ValueError):
-        f.fetch(src, dest, subdir=bad)
-
-
-def test_destination_collision_on_move(tmp_path, git_double):
-    src = "https://gitlab.com/org/monorepo.git"
-    dest = tmp_path / "repos"
-    dest.mkdir()
-    f = GitFetcher()
-
-    subdir = "modules/adas/camera"
-    # Pre-create destination path to trigger collision
-    (dest / _norm_subdir(subdir)).mkdir(parents=True, exist_ok=True)
-
-    with pytest.raises(RuntimeError) as ei:
-        f.fetch(src, dest, subdir=subdir)
-    assert "already exists" in str(ei.value)
 
 
 def test_existing_nonempty_target_repo_raises(tmp_path, git_double):

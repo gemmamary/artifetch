@@ -32,7 +32,6 @@ def fetch(
     provider: Optional[str] = None,
     *,
     branch: Optional[str] = None,
-    subdir: Optional[str] = None,
 ) -> Path:
     """
     Fetch an artifact or repository from a supported provider.
@@ -42,7 +41,6 @@ def fetch(
         dest: Local destination path. Defaults to current directory.
         provider: Explicit provider key ('gitlab', 'artifactory', 'git').
         branch: (git only) optional branch/tag/ref. If None, Git uses the remote's default branch.
-        subdir: (git only) optional subdirectory to materialize via sparse-checkout.
 
     Returns:
         Path to the downloaded artifact or repo.
@@ -68,7 +66,7 @@ def fetch(
     try:
         if provider == "git":
             git_fetcher = cast(GitFetcher, fetcher)
-            result = git_fetcher.fetch(source, dest_path, branch=branch, subdir=subdir)
+            result = git_fetcher.fetch(source, dest_path, branch=branch)
         else:
             result = fetcher.fetch(source, dest_path)
 

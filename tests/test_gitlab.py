@@ -1,9 +1,3 @@
-
-
-
-# tests/providers/test_gitlab.py
-
-import io
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch

@@ -12,7 +12,7 @@ except Exception:
     def load_dotenv() -> None:
         return
 
-from artifetch.utils.filesystem import ensure_dir, rmtree_win_safe
+from artifetch.utils.filesystem import ensure_dir
 
 logger = logging.getLogger(__name__)
 
@@ -28,27 +28,21 @@ class GitFetcher:
       # Specific branch:
       fetch("git@gitlab.com:org/repo.git", dest, branch="release/2025.10")
 
-      # Only a subfolder (module) with on-demand blobs:
-      fetch("group/monorepo", dest, subdir="modules/vision/perception")
-
     Notes:
       - If `branch` is None, we omit `-b` so Git uses the remote default branch.
-      - When `subdir` is provided, we enable sparse-checkout and set that path.
-        We also add `--filter=blob:none` to reduce network/disk (partial clone).
     """
 
     def __init__(self):
         load_dotenv()
         self.git = os.getenv("GIT_BINARY") or shutil.which("git") or "git"
 
-    def fetch(self, source: str, dest: Path, branch: Optional[str] = None,
-              subdir: Optional[str] = None) -> Path:
+    def fetch(self, source: str, dest: Path, branch: Optional[str] = None) -> Path:
         
         dest = Path(dest).resolve()
         ensure_dir(dest)
         logger.debug("Validating source format...")
         self._validate_source_format(source)
-        logger.debug("Normalizing \(shorthand -> Full URL\)")
+        logger.debug("Normalizing (shorthand -> Full URL)")
         repo_url = self._normalize_source(source)
 
         # Target directory = repo name (without .git)
@@ -66,10 +60,6 @@ class GitFetcher:
         
         cmd = [self.git, "clone", "--depth", "1", "--no-tags"]
         
-        if subdir:
-            logger.debug(f"Attempt to clone only subdir '{subdir}' from '{repo_name}'.")
-            # strict sparse: avoid initial checkout and fetch blobs on-demand
-            cmd += ["--filter=blob:none", "--no-checkout"]
         if branch:
             logger.debug(f"Clone ref '{branch}'")
             cmd += ["-b", branch]
@@ -79,45 +69,6 @@ class GitFetcher:
         logger.debug(f"Run command --> {cmd}")
         try:
             subprocess.run(cmd, check=True)
-            if subdir:
-                # Normalize POSIX path without leading slash for gluing
-                path = re.sub(r"/+", "/", str(subdir).replace("\\", "/")).strip("/")
-                if not path:
-                    raise ValueError("subdir must not be empty or the repository root ('/' or '\\').")
-
-
-
-                # Strict sparse: non-cone patterns, only the subtree you asked for
-                subprocess.run(
-                    [self.git, "-C", str(target), "sparse-checkout", "init", "--no-cone"],
-                    check=True,
-                )
-                subprocess.run(
-                    [self.git, "-C", str(target), "sparse-checkout", "set", "--no-cone", f"/{path}/**"],
-                    check=True,
-                )
-
-                # Now materialize working tree (default branch if -b omitted)
-                subprocess.run([self.git, "-C", str(target), "checkout"], check=True)
-                
-                # BEFORE moving, ensure the sparse path exists (useful when git is mocked)
-                src = target / path
-                if not src.exists():
-                    logger.debug("Sparse path '%s' not present after checkout; creating it so move can proceed.", src)
-                    ensure_dir(src)
-
-                dst = dest / path
-                ensure_dir(dst.parent)
-                if dst.exists():
-                    raise RuntimeError(f"Destination '{dst}' already exists.")
-                shutil.move(str(src), str(dst))
-                
-                try:
-                    rmtree_win_safe(target)
-                except Exception as e:
-                    logger.warning("Cleanup of temporary clone '%s' failed: %s", target, e)
-
-                return dst
         
         except FileNotFoundError as e:
             raise RuntimeError("git not found on PATH; install Git or set GIT_BINARY") from e

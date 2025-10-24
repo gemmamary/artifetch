@@ -17,7 +17,6 @@ def main():
     parser.add_argument("--dest", "-d", help="Destination folder (default: current directory)", default=".")
     parser.add_argument("--provider", "-p", choices=["gitlab", "artifactory", "git"], help="Specify provider explicitly")
     parser.add_argument("--branch", "-b", help="(git) Branch/tag/ref to checkout")
-    parser.add_argument("--subdir", "-s", help="(git) Only materialize this subdirectory using sparse-checkout")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
 
     args = parser.parse_args()
@@ -31,7 +30,6 @@ def main():
             dest=args.dest,
             provider=args.provider,
             branch=args.branch,
-            subdir=args.subdir,
         )
         logger.info(f"Successfully fetched: {result}")
     except FetchError as e:
