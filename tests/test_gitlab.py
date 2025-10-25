@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-from artifetch.providers.gitlab import GitLabFetcher
+from artifetch.fetchers.gitlab import GitLabFetcher
 
 
 @pytest.fixture(autouse=True)

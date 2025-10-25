@@ -2,9 +2,9 @@ from pathlib import Path
 from typing import Optional, Protocol, Dict, Any, Type, cast
 import sys, logging
 
-from artifetch.providers.artifactory import ArtifactoryFetcher
-from artifetch.providers.gitlab import GitLabFetcher
-from artifetch.providers.git import GitFetcher
+from artifetch.fetchers.artifactory import ArtifactoryFetcher
+from artifetch.fetchers.gitlab import GitLabFetcher
+from artifetch.fetchers.repo_clone import GitFetcher
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ import pytest
 import requests
 from pathlib import Path
 
-from artifetch.providers.artifactory import ArtifactoryFetcher
+from artifetch.fetchers.artifactory import ArtifactoryFetcher
 
 
 @pytest.fixture(autouse=True)

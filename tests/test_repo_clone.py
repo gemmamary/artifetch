@@ -4,7 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import pytest
 
-from artifetch.providers.git import GitFetcher
+from artifetch.fetchers.repo_clone import GitFetcher
 
 
 # ----------------------------
@@ -21,7 +21,7 @@ def clean_git_env(monkeypatch, tmp_path):
     - Work in a temp CWD so no project .env is discovered implicitly.
     """
     # Disable load_dotenv inside GitFetcher
-    import artifetch.providers.git as gitmod
+    import artifetch.fetchers.repo_clone as gitmod
     monkeypatch.setattr(gitmod, "load_dotenv", lambda: None)
 
     # Remove potentially set envs
