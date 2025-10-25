@@ -22,7 +22,7 @@ class Fetcher(Protocol):
 FETCHERS: Dict[str, Any] = {
     "artifactory": ArtifactoryFetcher,
     "gitlab": GitLabFetcher,
-    "git": RepoCloneFetcher,
+    "repo_clone": RepoCloneFetcher,
 }
 
 
@@ -101,11 +101,11 @@ def detect_provider(source: str) -> str:
     if s.startswith(("http://", "https://")):
         known_git_hosts = ("github.com", "gitlab.com", "bitbucket.org")
         if any(h in lower for h in known_git_hosts) or s.endswith(".git"):
-            return "git"
+            return "repo_clone"
 
     # Git shorthand (group[/sub]/repo)
     if "/" in s and " " not in s and "@" not in s and ":" not in s:
-        return "git"
+        return "repo_clone"
 
     # Fallback
     raise ValueError("Couldn't auto detect provider based on URL. Please specify provider and try again.")

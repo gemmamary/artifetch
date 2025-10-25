@@ -1,26 +1,36 @@
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from typing import Dict, Any, Type, cast
+import pytest
 
-from artifetch.core import fetch as core_fetch
+from artifetch.fetchers.repo_clone import RepoCloneFetcher
+from artifetch.core import fetch, FETCHERS  # adjust import
 
+def test_core_forwards_branch_and_returns_path(monkeypatch, tmp_path):
+    out = tmp_path / "out"
+    calls = {}
 
-@patch("artifetch.core.RepoCloneFetcher.fetch")
-def test_core_forwards_branch_to_git(mock_git_fetch, tmp_path):
-    src = "group/monorepo"
-    dest = tmp_path / "out"
-    dest.mkdir()
-    branch = "dev@can"
+    class SpyClone(RepoCloneFetcher):
+        def fetch(self, source: str, dest: Path, branch: str | None = None) -> Path:  # type: ignore[override]
+            # record forwarded args
+            calls["args"] = (source, dest, branch)
+            # emulate a successful clone return value (what your fetcher would return)
+            return dest / "monorepo"
 
-    expected_path = dest / "monorepo"
-    mock_git_fetch.return_value = expected_path
+    # swap the fetcher in the registry just for this test
+    monkeypatch.setitem(FETCHERS, "repo_clone", SpyClone)
 
-    result = core_fetch(src, dest=str(dest), provider="git", branch=branch)
+    result = fetch(
+        source="group/monorepo",
+        dest=str(out),
+        provider="repo_clone",
+        branch="mybranch",
+    )
 
-    assert result == expected_path
-    # Validate call forwarding with kwargs
-    mock_git_fetch.assert_called_once()
-    args, kwargs = mock_git_fetch.call_args
-    assert args[0] == src
-    assert args[1] == dest.resolve()
-    assert kwargs["branch"] == branch
+    # 1) forwarding assertions (note: dest is resolved in core.fetch())
+    assert calls["args"][0] == "group/monorepo"
+    assert calls["args"][1] == out.resolve()
+    assert calls["args"][2] == "mybranch"
+
+    # 2) return contract: Path to the cloned repo
+    assert result == out.resolve() / "monorepo"
+    assert isinstance(result, Path)

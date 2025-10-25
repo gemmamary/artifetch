@@ -59,7 +59,7 @@ jobs:
 
         - name: Run unit tests
           run:  |
-            pytest -q ../tests/test_repo_clone.py
+            pytest -q 
 
   publish-pypi:
     name: Publish to PyPI

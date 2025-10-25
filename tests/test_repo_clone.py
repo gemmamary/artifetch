@@ -277,7 +277,7 @@ def test_honors_custom_git_binary_from_env(tmp_path, git_double, monkeypatch):
 
 
 # ----------------------------
-# Shorthand normalization via env (kept from your suite)
+# Shorthand normalization via env 
 # ----------------------------
 
 def test_shorthand_normalizes_to_ssh_by_default(tmp_path, git_double):
