@@ -9,7 +9,7 @@ on:
 jobs:
   
   unit-tests:
-      name: Unit tests (tests/test_git.py)
+      name: Unit tests (tests/test_repo_clone.py)
       runs-on: ubuntu-latest
       timeout-minutes: 10
 
@@ -31,7 +31,7 @@ jobs:
           run: echo "PYTHONPATH=src:." >> "$GITHUB_ENV"
 
         - name: Run unit tests
-          run: pytest -q tests/test_git.py
+          run: pytest -q artifetch/tests/test_repo_clone.py
 
   build:
     name: Build distribution
