@@ -17,7 +17,7 @@ from artifetch.utils.filesystem import ensure_dir
 logger = logging.getLogger(__name__)
 
 
-class GitFetcher:
+class RepoCloneFetcher:
     """
     Git repository fetcher (shallow clone by default).
 

@@ -4,7 +4,7 @@ import sys, logging
 
 from artifetch.fetchers.artifactory import ArtifactoryFetcher
 from artifetch.fetchers.gitlab import GitLabFetcher
-from artifetch.fetchers.repo_clone import GitFetcher
+from artifetch.fetchers.repo_clone import RepoCloneFetcher
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class Fetcher(Protocol):
 FETCHERS: Dict[str, Any] = {
     "artifactory": ArtifactoryFetcher,
     "gitlab": GitLabFetcher,
-    "git": GitFetcher,
+    "git": RepoCloneFetcher,
 }
 
 
@@ -64,8 +64,8 @@ def fetch(
     fetcher = fetcher_cls()
 
     try:
-        if provider == "git":
-            git_fetcher = cast(GitFetcher, fetcher)
+        if provider == "repo_clone":
+            git_fetcher = cast(RepoCloneFetcher, fetcher)
             result = git_fetcher.fetch(source, dest_path, branch=branch)
         else:
             result = fetcher.fetch(source, dest_path)

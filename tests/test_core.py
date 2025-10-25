@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 from artifetch.core import fetch as core_fetch
 
 
-@patch("artifetch.core.GitFetcher.fetch")
+@patch("artifetch.core.RepoCloneFetcher.fetch")
 def test_core_forwards_branch_to_git(mock_git_fetch, tmp_path):
     src = "group/monorepo"
     dest = tmp_path / "out"
