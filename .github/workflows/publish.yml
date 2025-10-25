@@ -31,7 +31,9 @@ jobs:
           run: echo "PYTHONPATH=src:." >> "$GITHUB_ENV"
 
         - name: Run unit tests
-          run: pytest -q artifetch/tests/test_repo_clone.py
+          run:  |
+            pwd
+            pytest -q artifetch/tests/test_repo_clone.py
 
   build:
     name: Build distribution
