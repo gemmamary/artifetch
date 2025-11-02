@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 
 class RepoCloneFetcher:
     """
-    Git repository fetcher (shallow clone by default).
+    Repository Clone fetcher (shallow clone using git by default).
+    To use a specific version of git, pass in path to the git .exe on the machine this is being executed from.
+    If the GIT_BINARY environment variable is not set, default git command will be used.
 
     Usage:
       # Full repo (default branch):

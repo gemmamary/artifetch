@@ -15,8 +15,8 @@ def main():
 
     parser.add_argument("source", help="Source URL or identifier (e.g. gitlab://project/job or https://repo.git)")
     parser.add_argument("--dest", "-d", help="Destination folder (default: current directory)", default=".")
-    parser.add_argument("--provider", "-p", choices=["gitlab", "artifactory", "git"], help="Specify provider explicitly")
-    parser.add_argument("--branch", "-b", help="(git) Branch/tag/ref to checkout")
+    parser.add_argument("--provider", "-p", choices=["gitlab", "artifactory", "repo_clone", "repo_content"], help="Specify provider explicitly")
+    parser.add_argument("--branch", "-b", help="(repo_clone or repo_content) Branch/tag/ref to checkout/download from")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
 
     args = parser.parse_args()

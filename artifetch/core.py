@@ -5,6 +5,7 @@ import sys, logging
 from artifetch.fetchers.artifactory import ArtifactoryFetcher
 from artifetch.fetchers.gitlab import GitLabFetcher
 from artifetch.fetchers.repo_clone import RepoCloneFetcher
+from artifetch.fetchers.repo_content import RepoContentFetcher
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ FETCHERS: Dict[str, Any] = {
     "artifactory": ArtifactoryFetcher,
     "gitlab": GitLabFetcher,
     "repo_clone": RepoCloneFetcher,
+    "repo_content": RepoContentFetcher,
 }
 
 
@@ -65,8 +67,11 @@ def fetch(
 
     try:
         if provider == "repo_clone":
-            git_fetcher = cast(RepoCloneFetcher, fetcher)
-            result = git_fetcher.fetch(source, dest_path, branch=branch)
+            clone_fetcher = cast(RepoCloneFetcher, fetcher)
+            result = clone_fetcher.fetch(source, dest_path, branch=branch)
+        elif provider == "repo_content":
+            content_fetcher = cast(RepoContentFetcher, fetcher)
+            result = content_fetcher.fetch(source, dest_path, branch=branch)
         else:
             result = fetcher.fetch(source, dest_path)
 
@@ -80,8 +85,8 @@ def fetch(
 def detect_provider(source: str) -> str:
     """
     Try to detect the provider from the source string.
-    - Prefer 'git' if the string clearly looks like a Git repo or Git shorthand.
-    - Prefer explicit host hints for Artifactory and GitLab artifact URLs.
+    - Prefer 'repo_clone' if the string clearly looks like a Git repo or Git shorthand.
+    - Prefer explicit host hints for Artifactory URLs.
     """
     s = source.strip()
     lower = s.lower()
@@ -89,23 +94,12 @@ def detect_provider(source: str) -> str:
     # Explicit hosts first
     if "artifactory" in lower:
         return "artifactory"
-    # If it's a GitLab artifact/API link (non-.git), route to GitLab provider
-    if "gitlab" in lower and not s.endswith(".git"):
-        return "gitlab"
 
     # Git signals
     if s.endswith(".git"):
         return "git"
     if s.startswith(("git@", "ssh://")):
         return "git"
-    if s.startswith(("http://", "https://")):
-        known_git_hosts = ("github.com", "gitlab.com", "bitbucket.org")
-        if any(h in lower for h in known_git_hosts) or s.endswith(".git"):
-            return "repo_clone"
-
-    # Git shorthand (group[/sub]/repo)
-    if "/" in s and " " not in s and "@" not in s and ":" not in s:
-        return "repo_clone"
 
     # Fallback
     raise ValueError("Couldn't auto detect provider based on URL. Please specify provider and try again.")

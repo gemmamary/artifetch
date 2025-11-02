@@ -4,8 +4,7 @@ RepoCloneFetcher – Usage Guide
 Overview
 --------
 RepoCloneFetcher provides a simple way to clone Git repositories (shallow by default) using HTTPS or SSH.
-Use this fetcher when you need the entire repository (including the .git metadata/history). If you only
-need the working-tree files without .git, use RepoContentFetcher instead.
+Use this fetcher when you need the entire repository (including the .git metadata/history). If you only need the working-tree files without .git, use RepoContentFetcher instead.
 
 Key capabilities:
 - Full repository clone (remote default branch).
@@ -69,30 +68,68 @@ Behavior:
 - The target directory will be "<dest>/<repo-name>" (stripping a trailing ".git" from the repo name).
 - Clone options: shallow by default --depth=1 and --no-tags.
 
-Basic Examples:
+Usage Examples:
 ---------------
-from pathlib import Path
+From the top level API:
+```python
+from artifetch.core import fetch
+
+# Clones default branch
+fetch("https://gitlab.com/org/repo.git", "/tmp/repos", provider="repo_clone")
+```
+
+From the RepoCloneFetcher class:
+```python
 from artifetch.fetchers.repo_clone import RepoCloneFetcher
 
-fetcher = RepoCloneFetcher()
-
-# 1) Clone full repository (remote default branch)
-```python
-target = fetcher.fetch("https://gitlab.com/org/repo.git", Path("/tmp/repos"))
-print(f"Cloned to: {target}")
-```
-# 2) Clone a specific branch via SSH
-```python
-target = fetcher.fetch("git@gitlab.com:org/repo.git", Path("/tmp/repos"), branch="release/2025.10")
+# Clones default branch
+rover = RepoCloneFetcher()
+rover.fetch("https://gitlab.com/org/repo.git", "/tmp/repos")
 ```
 
-# 3) Use GitLab-style shorthand
+From a specific branch:
 ```python
+from artifetch.core import fetch
+
+# Clones from branch 'release/documentation'
+fetch("https://gitlab.com/org/repo.git", "/tmp/repos", provider="repo_clone", branch="release/2025.10")
+```
+
+From a specific tag:
+```python
+from artifetch.core import fetch
+
+# Clones from the version tagged 'v1.4.1'
+fetch("https://gitlab.com/org/repo.git", "/tmp/repos", provider="repo_clone", branch="v1.4.1")
+```
+
+CLI usage:
+
+```shell
+# If your project provides a CLI wrapper, a typical command might look like
+artifetch "git@gitlab.com:org/repo.git" --dest "/tmp/repos" --provider "repo_clone" --branch "feature/my_feature"
+```
+> Adjust flag names to your actual CLI. The Python API is authoritative; the CLI is just a thin wrapper.
+
+Clone via SSH:
+```python
+from artifetch.core import fetch
+
+fetch("git@gitlab.com:org/repo.git", "/tmp/repos", provider="repo_clone")
+```
+
+Clone using gitlab style shorthand:
+```python
+
+from artifetch.core import fetch
+
 # Requires ARTIFETCH_GIT_HOST / ARTIFETCH_GIT_PROTO (and possibly ARTIFETCH_GIT_USER for ssh)
 # If ARTIFETCH_GIT_PROTO=https  -> https://<host>/<group/repo>.git
 # If ARTIFETCH_GIT_PROTO=ssh    -> <user>@<host>:<group/repo>.git
-target = fetcher.fetch("group/project", Path("/tmp/repos"))
+fetch("git@gitlab.com:org/repo.git", "/tmp/repos", provider="repo_clone")
 ```
+
+
 
 Shorthand Normalization Rules
 -----------------------------
@@ -107,15 +144,6 @@ If source looks like "namespace/repo" (contains a slash) and does NOT start with
   - Else (ssh):
         user = ARTIFETCH_GIT_USER or "git"
         normalized URL = <user>@<host>:<namespace/repo>.git
-
-
-CLI Usage (if you expose a CLI)
--------------------------------
-If your project provides a CLI wrapper, a typical command might look like:
-```
-  artifetch repo-clone --source "git@gitlab.com:org/repo.git" --dest /tmp/repos --branch main
-```
-Adjust flag names to your actual CLI. The Python API is authoritative; the CLI is just a thin wrapper.
 
 
 Destination Rules
@@ -170,6 +198,7 @@ Troubleshooting
    - Provide an empty/non-existing destination folder, or delete existing contents.
 
 4) Clone fails (non-zero exit)
+   - Verify you are using a valid clone URL
    - Verify network connectivity and credentials/SSH keys.
    - For private repos over HTTPS, ensure your credential helper or token is configured for Git.
    - For SSH, confirm your SSH agent/keys and known_hosts are set up.
