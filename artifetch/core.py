@@ -68,10 +68,10 @@ def fetch(
     try:
         if provider == "repo_clone":
             clone_fetcher = cast(RepoCloneFetcher, fetcher)
-            result = clone_fetcher.fetch(source, dest_path, branch=branch)
+            result = clone_fetcher.fetch(source, dest_path, provider="repo_clone", branch=branch)
         elif provider == "repo_content":
             content_fetcher = cast(RepoContentFetcher, fetcher)
-            result = content_fetcher.fetch(source, dest_path, branch=branch)
+            result = content_fetcher.fetch(source, dest_path, provider="repo_content", branch=branch)
         else:
             result = fetcher.fetch(source, dest_path)
 

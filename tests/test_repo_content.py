@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 import pytest
 
-from artifetch.fetchers.repo_content import RepositoryContentFetcher
+from artifetch.fetchers.repo_content import RepoContentFetcher
 
 # ---------------------------
 # Helpers
@@ -93,7 +93,7 @@ def fetcher(monkeypatch):
     # Ensure predictable API base fallback unless tests override
     monkeypatch.delenv('ARTIFETCH_GITLAB_API_BASE', raising=False)
     monkeypatch.setenv('ARTIFETCH_GIT_HOST', 'gitlab.com')
-    return RepositoryContentFetcher()
+    return RepoContentFetcher()
 
 
 def test_fetch_repo_default_branch_downloads_archive(tmp_path, fetcher, monkeypatch):
@@ -181,7 +181,7 @@ def test_supports_web_urls_tree_blob_and_root(tmp_path, monkeypatch):
     monkeypatch.delenv('ARTIFETCH_GITLAB_API_BASE', raising=False)
     monkeypatch.delenv('ARTIFETCH_GIT_HOST', raising=False)
 
-    fetcher = RepositoryContentFetcher()
+    fetcher = RepoContentFetcher()
     rc = RequestCapture()
 
     # 1) tree
@@ -213,7 +213,7 @@ def test_supports_web_urls_tree_blob_and_root(tmp_path, monkeypatch):
 def test_api_base_env_precedence_for_self_hosted(tmp_path, monkeypatch):
     monkeypatch.setenv('ARTIFETCH_GITLAB_API_BASE', 'https://self.host/custom/api/v4')
     monkeypatch.setenv('ARTIFETCH_GIT_HOST', 'ignored.example.com')
-    fetcher = RepositoryContentFetcher()
+    fetcher = RepoContentFetcher()
 
     rc = RequestCapture()
     rc.set_file(b'x')
@@ -254,9 +254,9 @@ def test_kind_override_dir_when_path_has_dots(tmp_path, fetcher):
 
 def test_sends_gitlab_token_header_when_present(tmp_path, monkeypatch):
     monkeypatch.setenv('GITLAB_TOKEN', 'abc123')
-    fetcher = RepositoryContentFetcher()
+    fetcher = RepoContentFetcher()
     
-    from artifetch.fetchers.repo_content import RepositoryContentFetcher as _RCF  # ensure module re-reads env in _gl_headers
+    from artifetch.fetchers.repo_content import RepoContentFetcher as _RCF  # ensure module re-reads env in _gl_headers
     rc = RequestCapture()
     rc.set_file(b'xyz')
 

@@ -1,9 +1,9 @@
-RepositoryContentFetcher (GitLab) 
+RepoContentFetcher (GitLab) 
 ================================================
 
 ## Overview
 --------
-`RepositoryContentFetcher` downloads repository content (entire repo, a
+`RepoContentFetcher` downloads repository content (entire repo, a
 flattened subfolder, or a single file) from GitLab using only HTTPS calls to the
 GitLab REST API. It supports both a concise `gitlab://` grammar and real GitLab
 web URLs (prefixed with `gitlab://`). It streams archives/files efficiently and
@@ -73,17 +73,17 @@ The API base is resolved in this order:
 
 ### Repo content via CLI (full repo)
 ```
-artifetch repo-content --uri "gitlab://group/project@main" --dest ./out-full --kind repo
+artifetch "gitlab://group/project@main" --dest ./out-full
 ```
 
 ### Repo content via CLI (subfolder flattened)
 ```
-artifetch repo-content --uri "gitlab://group/project@main//docs" --dest ./out-docs --kind dir
+artifetch "gitlab://group/project@main//docs" --dest ./out-docs
 ```
 
 ### Repo content via CLI (single file)
 ```
-artifetch repo-content --uri "gitlab://group/project@main//README.md" --dest ./out-file --kind file
+artifetch "gitlab://group/project@main//README.md" --dest ./out-file
 ```
 
 ### Download repository content (full repo snapshot without `.git`)
@@ -122,9 +122,9 @@ fetcher.fetch("gitlab://group/project@main//README.md", Path("./out-file"), kind
 
 ```python
 from pathlib import Path
-from repo_content import RepositoryContentFetcher
+from repo_content import RepoContentFetcher
 
-fetcher = RepositoryContentFetcher()
+fetcher = RepoContentFetcher()
 
 # 1) Whole repository (default branch)
 fetcher.fetch('gitlab://group/sub/repo', Path('out'), kind='repo')

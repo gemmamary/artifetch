@@ -19,18 +19,18 @@ class _RepoRequest:
     # GitLab only
     namespace: str
     repo: str
-    ref: str  # branch/tag/sha or "HEAD"
+    branch: str  # branch/tag/sha or "HEAD"
     path: Optional[str]  # None for repo; for dir/file it's the subpath
     kind: Kind = "auto"
     api_base: Optional[str] = None  # per-request override (used when parsing full https URL)
 
 
-class RepositoryContentFetcher:
+class RepoContentFetcher:
     """
     Fetch repository content (entire repo, subfolder, or single file) from GitLab.
 
     URI grammar (GitLab only):
-        gitlab://{namespace}/{repo}[@{ref}][//{path}]
+        gitlab://{namespace}/{repo}[@{branch}][//{path}]
 
     Examples:
         fetch("gitlab://group/sub/repo", "out", kind="repo")
@@ -39,9 +39,9 @@ class RepositoryContentFetcher:
         fetch("gitlab://group/sub/repo@v1.2.3//CHANGELOG.md", "out", kind="file")
 
     Also accepted for convenience (auto-derive API base from URL host):
-        gitlab://https://gitlab.example.com/group/repo/-/tree/<ref>/<path>
-        gitlab://https://gitlab.example.com/group/repo/-/blob/<ref>/<path>
-        gitlab://https://gitlab.example.com/group/repo  (ref=HEAD, path=None)
+        gitlab://https://gitlab.example.com/group/repo/-/tree/<branch>/<path>
+        gitlab://https://gitlab.example.com/group/repo/-/blob/<branch>/<path>
+        gitlab://https://gitlab.example.com/group/repo  (branch=HEAD, path=None)
 
     Auth (optional):
         - GitLab: env GITLAB_TOKEN (sent as PRIVATE-TOKEN header)
@@ -58,10 +58,10 @@ class RepositoryContentFetcher:
         self.gl_api_default = self._build_gitlab_api_base()
 
     # ---- Public API -----------------------------------------------------
-    def fetch(self, uri: str, dest: Path | str, kind: Kind = "auto") -> Path:
+    def fetch(self, uri: str, dest: Path | str, branch = None, kind: Kind = "auto") -> Path:
         req = self._parse_uri(uri)
         if kind != "auto":
-            req = _RepoRequest(req.namespace, req.repo, req.ref, req.path, kind, req.api_base)
+            req = _RepoRequest(req.namespace, req.repo, req.branch, req.path, kind, req.api_base)
 
         dest_path = Path(dest)
         dest_path.mkdir(parents=True, exist_ok=True)
@@ -91,7 +91,7 @@ class RepositoryContentFetcher:
     def _gitlab_fetch_archive(self, req: _RepoRequest, dest: Path) -> Path:
         project_id = self._gitlab_project_id(req)
         url = f"{self._api_base_for(req)}/projects/{project_id}/repository/archive.zip"
-        params: dict = {"sha": req.ref or "HEAD"}
+        params: dict = {"sha": req.branch or "HEAD"}
         # For kind dir (or auto with path) ask server to pre-trim to that path
         if req.kind == "dir" or (req.path and req.kind == "auto"):
             params["path"] = (req.path or "").strip("/")
@@ -109,7 +109,7 @@ class RepositoryContentFetcher:
         project_id = self._gitlab_project_id(req)
         file_enc = urlquote(req.path, safe="")
         url = f"{self._api_base_for(req)}/projects/{project_id}/repository/files/{file_enc}/raw"
-        params = {"ref": req.ref or "HEAD"}
+        params = {"branch": req.branch or "HEAD"}
         target = dest / Path(req.path).name
         with requests.get(url, headers=self._gl_headers(), params=params, stream=True, timeout=60) as r:
             r.raise_for_status()
@@ -124,9 +124,9 @@ class RepositoryContentFetcher:
         """
         Grammar:
             gitlab://<namespace>/<repo>
-            gitlab://<namespace>/<repo>@<ref>
+            gitlab://<namespace>/<repo>@<branch>
             gitlab://<namespace>/<repo>//<path>
-            gitlab://<namespace>/<repo>@<ref>//<path>
+            gitlab://<namespace>/<repo>@<branch>//<path>
 
         Convenience: if the part after scheme starts with http(s), treat it as a GitLab web URL.
         """
@@ -135,11 +135,11 @@ class RepositoryContentFetcher:
         rest = uri[len("gitlab://"):]
 
         if rest.startswith(("http://", "https://")):
-            namespace, repo, ref, path, api_base = _parse_gitlab_https(rest)
-            return _RepoRequest(namespace, repo, ref or "HEAD", path, "auto", api_base=api_base)
+            namespace, repo, branch, path, api_base = _parse_gitlab_https(rest)
+            return _RepoRequest(namespace, repo, branch or "HEAD", path, "auto", api_base=api_base)
 
-        namespace, repo, ref, path = _parse_rest_new_grammar(rest, allow_namespace=True)
-        return _RepoRequest(namespace, repo, ref or "HEAD", path, "auto")
+        namespace, repo, branch, path = _parse_rest_new_grammar(rest, allow_namespace=True)
+        return _RepoRequest(namespace, repo, branch or "HEAD", path, "auto")
 
     @contextmanager
     def _stream_to_temp(self, url: str, headers: Optional[dict] = None, params: Optional[dict] = None):
@@ -199,9 +199,9 @@ def _parse_rest_new_grammar(rest: str, *, allow_namespace: bool) -> Tuple[str, s
       before = "<owner_or_ns>/<repo>"
       forms:
         before
-        before@ref
+        before@branch
         before//path
-        before@ref//path
+        before@branch//path
     """
     # 1) Split off the path (if provided), using the double-slash separator
     if "//" in rest:
@@ -210,12 +210,12 @@ def _parse_rest_new_grammar(rest: str, *, allow_namespace: bool) -> Tuple[str, s
     else:
         head, path = rest, None
 
-    # 2) Extract optional ref from head
+    # 2) Extract optional branch from head
     if "@" in head:
-        before_at, ref = head.split("@", 1)
-        ref = ref or None
+        before_at, branch = head.split("@", 1)
+        branch = branch or None
     else:
-        before_at, ref = head, None
+        before_at, branch = head, None
 
     # 3) Split owner/namespace and repo
     parts = [p for p in before_at.split("/") if p]
@@ -229,16 +229,16 @@ def _parse_rest_new_grammar(rest: str, *, allow_namespace: bool) -> Tuple[str, s
             raise ValueError(f"Expected 'owner/repo' in '{rest}'")
         namespace, repo = parts
 
-    return namespace, repo, ref, path
+    return namespace, repo, branch, path
 
 
 def _parse_gitlab_https(url: str) -> Tuple[str, str, Optional[str], Optional[str], str]:
-    """Parse a GitLab *web* URL into (namespace, repo, ref, path, api_base).
+    """Parse a GitLab *web* URL into (namespace, repo, branch, path, api_base).
 
     Supported examples:
       https://gitlab.example.com/group/repo
-      https://gitlab.example.com/group/repo/-/tree/<ref>/<path>
-      https://gitlab.example.com/group/repo/-/blob/<ref>/<path>
+      https://gitlab.example.com/group/repo/-/tree/<branch>/<path>
+      https://gitlab.example.com/group/repo/-/blob/<branch>/<path>
     """
     p = urlparse(url)
     api_base = f"{p.scheme}://{p.netloc}/api/v4"
@@ -256,11 +256,11 @@ def _parse_gitlab_https(url: str) -> Tuple[str, str, Optional[str], Optional[str
         repo = ns_repo_parts[-1]
         namespace = "/".join(ns_repo_parts[:-1])
         if len(after) >= 2:
-            # after = [tree|blob, ref, ...path]
-            ref = after[1] or None
+            # after = [tree|blob, branch, ...path]
+            branch = after[1] or None
             subpath = "/".join(after[2:]) if len(after) > 2 else None
         else:
-            ref = None
+            branch = None
             subpath = None
     else:
         # No '/-/' segment -> repo root page
@@ -268,10 +268,10 @@ def _parse_gitlab_https(url: str) -> Tuple[str, str, Optional[str], Optional[str
             raise ValueError(f"Invalid GitLab URL: {url}")
         repo = parts[-1]
         namespace = "/".join(parts[:-1])
-        ref = None
+        branch = None
         subpath = None
 
-    return namespace, repo, ref, subpath, api_base
+    return namespace, repo, branch, subpath, api_base
 
 
 def _extract_zip_subset(zf: zipfile.ZipFile, subset_prefix: Optional[str], dest: Path) -> None:
